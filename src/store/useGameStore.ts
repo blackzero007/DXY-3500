@@ -11,6 +11,7 @@ import {
   saveGameRecord,
   getTodayRecord,
 } from '../utils/storage';
+import { useAchievementStore } from './useAchievementStore';
 
 const GAME_TIME = 60;
 
@@ -238,6 +239,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       shuffledLetters: newShuffled,
       hintsUsed: newHintsUsed,
     });
+
+    useAchievementStore.getState().checkAchievements();
 
     return newHintsUsed;
   },

@@ -7,10 +7,12 @@ import { useAchievementStore } from '@/store/useAchievementStore';
 
 export default function Home() {
   const initAchievements = useAchievementStore((s) => s.initAchievements);
+  const checkAchievements = useAchievementStore((s) => s.checkAchievements);
 
   useEffect(() => {
     initAchievements();
-  }, [initAchievements]);
+    checkAchievements();
+  }, [initAchievements, checkAchievements]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-teal-50">

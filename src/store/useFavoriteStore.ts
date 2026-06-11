@@ -5,6 +5,7 @@ import {
   saveFavorite,
   removeFavorite,
 } from '../utils/storage';
+import { useAchievementStore } from './useAchievementStore';
 
 export type SortOrder = 'desc' | 'asc';
 
@@ -38,6 +39,7 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
     };
     saveFavorite(word);
     set({ favorites: [...favorites, newFavorite] });
+    useAchievementStore.getState().checkAchievements();
   },
 
   removeFavoriteWord: (word: string) => {
@@ -45,6 +47,7 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
     set((state) => ({
       favorites: state.favorites.filter((f) => f.word !== word),
     }));
+    useAchievementStore.getState().checkAchievements();
   },
 
   toggleFavorite: (word: Word) => {
