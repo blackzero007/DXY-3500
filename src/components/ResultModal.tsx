@@ -156,11 +156,13 @@ export function ResultModal() {
                 />
               </button>
             </div>
+            {currentWord?.phonetic && (
+              <div className="flex items-center justify-center gap-2 text-gray-500 mt-1">
+                <span className="text-sm">{currentWord.phonetic}</span>
+              </div>
+            )}
             {isSupported && (
               <div className="flex items-center justify-center gap-3 mt-2">
-                {currentWord?.phonetic && (
-                  <span className="text-sm text-gray-500">{currentWord.phonetic}</span>
-                )}
                 <button
                   onClick={() => currentWord && speak(currentWord.word, speechRate)}
                   className={cn(
