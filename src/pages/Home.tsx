@@ -1,8 +1,17 @@
+import { useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { GameBoard } from '@/components/GameBoard';
 import { ResultModal } from '@/components/ResultModal';
+import { BadgeWall } from '@/components/BadgeWall';
+import { useAchievementStore } from '@/store/useAchievementStore';
 
 export default function Home() {
+  const initAchievements = useAchievementStore((s) => s.initAchievements);
+
+  useEffect(() => {
+    initAchievements();
+  }, [initAchievements]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-teal-50">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -25,6 +34,8 @@ export default function Home() {
           </div>
 
           <GameBoard />
+
+          <BadgeWall />
         </main>
 
         <footer className="text-center py-6 text-gray-400 text-xs">

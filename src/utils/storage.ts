@@ -1,10 +1,11 @@
-import type { GameRecord, FavoriteWord } from '../types';
+import type { GameRecord, FavoriteWord, AchievementProgress } from '../types';
 
 const STORAGE_KEYS = {
   GAME_RECORDS: 'word_puzzle_records',
   STREAK: 'word_puzzle_streak',
   LAST_PLAY_DATE: 'word_puzzle_last_date',
   FAVORITES: 'word_puzzle_favorites',
+  ACHIEVEMENTS: 'word_puzzle_achievements',
 };
 
 export function getGameRecords(): GameRecord[] {
@@ -111,4 +112,21 @@ export function removeFavorite(word: string): void {
 export function isFavorite(word: string): boolean {
   const favorites = getFavorites();
   return favorites.some(f => f.word === word);
+}
+
+export function getAchievements(): AchievementProgress[] {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveAchievements(achievements: AchievementProgress[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(achievements));
+  } catch {
+    console.error('Failed to save achievements');
+  }
 }

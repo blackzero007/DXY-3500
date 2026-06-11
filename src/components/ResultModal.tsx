@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Trophy, XCircle, Clock, Lightbulb, Volume2, Share2, RotateCcw, Star } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { useFavoriteStore } from '../store/useFavoriteStore';
+import { useAchievementStore } from '../store/useAchievementStore';
 import { cn } from '../lib/utils';
 
 interface ConfettiPiece {
@@ -17,6 +18,7 @@ export function ResultModal() {
   const initFavorites = useFavoriteStore((s) => s.initFavorites);
   const toggleFavorite = useFavoriteStore((s) => s.toggleFavorite);
   const favorites = useFavoriteStore((s) => s.favorites);
+  const checkAchievements = useAchievementStore((s) => s.checkAchievements);
   const [show, setShow] = useState(false);
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
 
@@ -31,11 +33,12 @@ export function ResultModal() {
   useEffect(() => {
     if (isSuccess || isFailed) {
       const timer = setTimeout(() => setShow(true), 300);
+      checkAchievements();
       return () => clearTimeout(timer);
     } else {
       setShow(false);
     }
-  }, [isSuccess, isFailed]);
+  }, [isSuccess, isFailed, checkAchievements]);
 
   useEffect(() => {
     if (isSuccess && show) {
