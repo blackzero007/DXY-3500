@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Trophy, XCircle, Clock, Lightbulb, Volume2, Share2, RotateCcw, Star } from 'lucide-react';
+import { Trophy, XCircle, Clock, Lightbulb, Volume2, Share2, RotateCcw, Star, Image, Download, X, Loader2 } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { useFavoriteStore } from '../store/useFavoriteStore';
 import { useAchievementStore } from '../store/useAchievementStore';
@@ -7,6 +7,7 @@ import { useSpeech } from '../hooks/useSpeech';
 import { getGameModeConfig } from '../config/gameModes';
 import { cn } from '../lib/utils';
 import { soundManager } from '../utils/soundManager';
+import { generatePoster, shareImage, saveToAlbum, type PosterData } from '../utils/posterGenerator';
 
 type SpeechRate = 'normal' | 'slow';
 
@@ -28,6 +29,9 @@ export function ResultModal() {
   const [show, setShow] = useState(false);
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
   const [speechRate, setSpeechRate] = useState<SpeechRate>('normal');
+  const [showPoster, setShowPoster] = useState(false);
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { speak, isSpeaking, isSupported } = useSpeech();
 
   const isSuccess = gameStatus === 'success';
@@ -99,6 +103,78 @@ export function ResultModal() {
         alert('已复制到剪贴板');
       }).catch(() => {});
     }
+  };
+
+  const getShareText = () => {
+    const modeText = gameMode === 'classic' ? '经典模式' : gameMode === 'practice' ? '练习模式' : '挑战模式';
+    const timeText = config.timeLimit !== null ? `在${config.timeLimit}秒内` : '';
+    
+    return isSuccess
+      ? `🎉 我在每日单词拼图【${modeText}】中${timeText}用了 ${timeUsed} 秒，${hintsUsed > 0 ? `使用了 ${hintsUsed} 次提示，` : ''}成功拼出了单词 "${currentWord?.word}"！来挑战我吧！`
+      : `😢 我在每日单词拼图【${modeText}】中${timeText}没能完成，单词是 "${currentWord?.word}" - ${currentWord?.meaning}。再来挑战一次！`;
+  };
+
+  const handleGeneratePoster = async () => {
+    if (!currentWord) return;
+
+    setIsGenerating(true);
+    try {
+      const posterData: PosterData = {
+        word: currentWord.word,
+        meaning: currentWord.meaning,
+        phonetic: currentWord.phonetic,
+        timeUsed: timeUsed,
+        isSuccess: isSuccess,
+        streak: streak,
+        hintsUsed: hintsUsed,
+        gameMode: gameMode,
+      };
+
+      const dataUrl = await generatePoster(posterData);
+      setPosterUrl(dataUrl);
+      setShowPoster(true);
+    } catch (error) {
+      console.error('生成海报失败:', error);
+      alert('生成海报失败，请重试');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveToAlbum = async () => {
+    if (!posterUrl) return;
+    
+    try {
+      const success = await saveToAlbum(posterUrl);
+      if (success) {
+        alert('海报已保存到相册/下载文件夹');
+      } else {
+        alert('保存失败，请重试');
+      }
+    } catch (error) {
+      console.error('保存失败:', error);
+      alert('保存失败，请重试');
+    }
+  };
+
+  const handleSharePoster = async () => {
+    if (!posterUrl) return;
+    
+    try {
+      const text = getShareText();
+      const success = await shareImage(posterUrl, text);
+      if (!success) {
+        alert('当前浏览器不支持分享图片，已自动保存到相册');
+        await saveToAlbum(posterUrl);
+      }
+    } catch (error) {
+      console.error('分享失败:', error);
+      alert('分享失败，请重试');
+    }
+  };
+
+  const handleClosePoster = () => {
+    setShowPoster(false);
   };
 
   return (
@@ -250,7 +326,7 @@ export function ResultModal() {
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 mb-3">
             <button
               onClick={handleShare}
               className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
@@ -258,6 +334,25 @@ export function ResultModal() {
               <Share2 className="w-4 h-4" />
               分享
             </button>
+            <button
+              onClick={handleGeneratePoster}
+              disabled={isGenerating}
+              className={cn(
+                'flex-1 py-3 px-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2',
+                isSuccess
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white disabled:from-purple-300 disabled:to-purple-400'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white disabled:from-blue-300 disabled:to-blue-400'
+              )}
+            >
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Image className="w-4 h-4" />
+              )}
+              {isGenerating ? '生成中...' : '生成海报'}
+            </button>
+          </div>
+          <div className="flex gap-3">
             <button
               onClick={retryGame}
               className={cn(
@@ -286,6 +381,62 @@ export function ResultModal() {
           }
         }
       `}</style>
+
+      {showPoster && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={handleClosePoster}
+          />
+          <div className="relative w-full max-w-sm">
+            <button
+              onClick={handleClosePoster}
+              className="absolute -top-12 right-0 text-white hover:text-gray-200 transition-colors z-10"
+            >
+              <X className="w-8 h-8" />
+            </button>
+
+            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl">
+              <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500">
+                <p className="text-center text-white font-medium">分享海报</p>
+              </div>
+
+              <div className="p-4">
+                {posterUrl ? (
+                  <img
+                    src={posterUrl}
+                    alt="分享海报"
+                    className="w-full rounded-xl shadow-lg"
+                  />
+                ) : (
+                  <div className="w-full aspect-[9/16] bg-gray-100 rounded-xl flex items-center justify-center">
+                    <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 pt-0">
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSaveToAlbum}
+                    className="flex-1 py-3 px-4 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-5 h-5" />
+                    保存到相册
+                  </button>
+                  <button
+                    onClick={handleSharePoster}
+                    className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Share2 className="w-5 h-5" />
+                    直接分享
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
