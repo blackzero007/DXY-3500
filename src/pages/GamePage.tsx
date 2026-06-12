@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, RotateCcw, Home } from 'lucide-react';
-import { Header } from '@/components/Header';
 import { GameBoard } from '@/components/GameBoard';
 import { ResultModal } from '@/components/ResultModal';
 import { BadgeWall } from '@/components/BadgeWall';

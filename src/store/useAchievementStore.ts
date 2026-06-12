@@ -96,7 +96,7 @@ export const useAchievementStore = create<AchievementStore>((set, get) => ({
     set({ progress });
   },
 
-  checkAchievements: (context) => {
+  checkAchievements: () => {
     const records = getGameRecords();
     const streak = getStreak();
     const favorites = getFavorites();

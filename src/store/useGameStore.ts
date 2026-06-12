@@ -213,7 +213,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   submitAnswer: (): boolean => {
-    const { answerLetters, currentWord, hintsUsed, timeLeft, startTime, gameMode } = get();
+    const { answerLetters, currentWord, hintsUsed, startTime, gameMode } = get();
     if (!currentWord) return false;
 
     const answer = answerLetters.join('');
@@ -221,7 +221,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (isCorrect) {
       const today = getTodayString();
-      const config = getGameModeConfig(gameMode);
       const timeUsed = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
       
       let newStreak = get().streak;

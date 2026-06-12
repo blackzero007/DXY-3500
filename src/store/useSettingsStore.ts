@@ -1,11 +1,13 @@
 import { create } from 'zustand';
-import { getSettings, saveSettings, type AppSettings } from '../utils/storage';
+import { getSettings, saveSettings, type AppSettings, type Theme } from '../utils/storage';
 import { soundManager } from '../utils/soundManager';
 
 interface SettingsStore extends AppSettings {
   initSettings: () => void;
   toggleSound: () => void;
   setSoundEnabled: (enabled: boolean) => void;
+  toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
   toggleDailyReminder: () => void;
   setDailyReminderEnabled: (enabled: boolean) => void;
   setDailyReminderTime: (time: string) => void;
@@ -13,6 +15,7 @@ interface SettingsStore extends AppSettings {
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   soundEnabled: true,
+  theme: 'light',
   dailyReminder: {
     enabled: false,
     time: '09:00',
@@ -21,10 +24,29 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   initSettings: () => {
     const saved = getSettings();
     soundManager.setEnabled(saved.soundEnabled);
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(saved.theme);
     set({
       soundEnabled: saved.soundEnabled,
+      theme: saved.theme,
       dailyReminder: saved.dailyReminder,
     });
+  },
+
+  toggleTheme: () => {
+    const current = get().theme;
+    const newTheme: Theme = current === 'light' ? 'dark' : 'light';
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(newTheme);
+    saveSettings({ ...get(), theme: newTheme });
+    set({ theme: newTheme });
+  },
+
+  setTheme: (theme: Theme) => {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+    saveSettings({ ...get(), theme });
+    set({ theme });
   },
 
   toggleSound: () => {

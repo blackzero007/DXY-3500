@@ -137,8 +137,11 @@ export function saveAchievements(achievements: AchievementProgress[]): void {
   }
 }
 
+export type Theme = 'light' | 'dark';
+
 export interface AppSettings {
   soundEnabled: boolean;
+  theme: Theme;
   dailyReminder: {
     enabled: boolean;
     time: string;
@@ -147,6 +150,7 @@ export interface AppSettings {
 
 const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
+  theme: 'light',
   dailyReminder: {
     enabled: false,
     time: '09:00',
@@ -158,12 +162,19 @@ export function getSettings(): AppSettings {
     const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     if (data) {
       const parsed = JSON.parse(data);
-      return { ...DEFAULT_SETTINGS, ...parsed };
+      const settings = { ...DEFAULT_SETTINGS, ...parsed };
+      if (!parsed.theme) {
+        settings.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return settings;
     }
   } catch {
     // ignore
   }
-  return { ...DEFAULT_SETTINGS };
+  return {
+    ...DEFAULT_SETTINGS,
+    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+  };
 }
 
 export function saveSettings(settings: AppSettings): void {

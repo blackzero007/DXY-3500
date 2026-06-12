@@ -22,7 +22,7 @@ export function GameBoard() {
     removeLetter,
     resetAnswer,
     submitAnswer,
-    useHint,
+    useHint: applyHint,
     initGame,
     startGame,
     revealAnswer,
@@ -118,7 +118,7 @@ export function GameBoard() {
 
   const handleHint = () => {
     if (!config.allowHints) return;
-    useHint();
+    applyHint();
   };
 
   const handleRevealAnswer = () => {
