@@ -19,6 +19,8 @@ const DEFAULT_GAME_TIME = 60;
 interface GameStore extends GameState {
   initGame: (mode?: GameMode) => void;
   startGame: () => void;
+  pauseGame: () => void;
+  resumeGame: () => void;
   placeLetter: (letter: string, fromIndex: number, toIndex: number) => void;
   removeLetter: (index: number) => void;
   resetAnswer: () => void;
@@ -146,6 +148,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameStatus: 'playing',
       startTime: Date.now(),
     });
+  },
+
+  pauseGame: () => {
+    const { gameStatus } = get();
+    if (gameStatus !== 'playing') return;
+    set({ gameStatus: 'paused' });
+  },
+
+  resumeGame: () => {
+    const { gameStatus } = get();
+    if (gameStatus !== 'paused') return;
+    set({ gameStatus: 'playing' });
   },
 
   placeLetter: (letter: string, fromIndex: number, toIndex: number) => {

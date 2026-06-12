@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
-import { RotateCcw, Lightbulb, Send, HelpCircle, Play, Volume2, Eye } from 'lucide-react';
+import { RotateCcw, Lightbulb, Send, HelpCircle, Play, Volume2, Eye, Pause } from 'lucide-react';
 import { LetterCard } from './LetterCard';
 import { Timer } from './Timer';
 import { useGameStore } from '../store/useGameStore';
@@ -383,92 +383,121 @@ export function GameBoard() {
       </div>
 
       <div className="relative">
-        <div
-          ref={answerRef}
-          data-answer-slot
-          className={cn(
-            'flex justify-center gap-2 sm:gap-3 mb-8 p-4',
-            'bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200',
-            'min-h-24 sm:min-h-28 items-center',
-            shakeAnswer && 'animate-shake'
+        <div className={cn(
+          'relative',
+          gameStatus === 'paused' && 'pointer-events-none'
+        )}>
+          <div
+            ref={answerRef}
+            data-answer-slot
+            className={cn(
+              'flex justify-center gap-2 sm:gap-3 mb-8 p-4',
+              'bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200',
+              'min-h-24 sm:min-h-28 items-center',
+              shakeAnswer && 'animate-shake'
+            )}
+          >
+            {answerLetters.map((letter, index) => (
+              <div
+                key={`answer-${index}`}
+                data-answer-slot
+                data-index={index}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, index, 'answer')}
+                className={cn(
+                  'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16',
+                  'flex items-center justify-center',
+                  'rounded-xl transition-all duration-200',
+                  letter ? '' : 'bg-white border-2 border-dashed border-gray-300'
+                )}
+              >
+                {letter ? (
+                  <LetterCard
+                    letter={letter}
+                    index={index}
+                    source="answer"
+                    onClick={() => handleAnswerCardClick(index)}
+                    disabled={isGameOver || gameStatus === 'paused'}
+                    removable={!isGameOver && gameStatus !== 'paused'}
+                  />
+                ) : (
+                  <span className="text-gray-300 text-xs">{index + 1}</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={handleResetAnswer}
+            disabled={isGameOver || answerLetters.every((l) => l === null) || gameStatus === 'paused'}
+            className={cn(
+              'absolute top-2 right-2 flex items-center gap-1.5 px-3 py-1.5',
+              'bg-white rounded-lg text-sm font-medium shadow-sm',
+              'border border-gray-200',
+              'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200',
+              'transition-all duration-200',
+              'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 disabled:hover:border-gray-200'
+            )}
+            title="清空所有已放置的字母"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">撤销</span>
+          </button>
+
+          {gameStatus === 'paused' && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
+              <div className="text-center">
+                <Pause className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 font-medium">游戏已暂停</p>
+                <p className="text-gray-400 text-sm">点击继续按钮恢复游戏</p>
+              </div>
+            </div>
           )}
+        </div>
+      </div>
+
+      <div className={cn(
+        'relative',
+        gameStatus === 'paused' && 'pointer-events-none'
+      )}>
+        <div
+          ref={poolRef}
+          data-pool-slot
+          className="flex flex-wrap justify-center gap-2 sm:gap-3 p-4 bg-white rounded-2xl shadow-inner mb-6 min-h-24 sm:min-h-28"
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, 0, 'pool')}
         >
-          {answerLetters.map((letter, index) => (
+          {shuffledLetters.map((letter, index) => (
             <div
-              key={`answer-${index}`}
-              data-answer-slot
+              key={`pool-${index}`}
+              data-pool-slot
               data-index={index}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, index, 'answer')}
-              className={cn(
-                'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16',
-                'flex items-center justify-center',
-                'rounded-xl transition-all duration-200',
-                letter ? '' : 'bg-white border-2 border-dashed border-gray-300'
-              )}
             >
-              {letter ? (
-                <LetterCard
-                  letter={letter}
-                  index={index}
-                  source="answer"
-                  onClick={() => handleAnswerCardClick(index)}
-                  disabled={isGameOver}
-                  removable={!isGameOver}
-                />
-              ) : (
-                <span className="text-gray-300 text-xs">{index + 1}</span>
-              )}
+              <LetterCard
+                letter={letter}
+                index={index}
+                source="pool"
+                onClick={() => handlePoolCardClick(letter, index)}
+                disabled={isGameOver || gameStatus === 'paused'}
+              />
             </div>
           ))}
         </div>
 
-        <button
-          onClick={handleResetAnswer}
-          disabled={isGameOver || answerLetters.every((l) => l === null)}
-          className={cn(
-            'absolute top-2 right-2 flex items-center gap-1.5 px-3 py-1.5',
-            'bg-white rounded-lg text-sm font-medium shadow-sm',
-            'border border-gray-200',
-            'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200',
-            'transition-all duration-200',
-            'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500 disabled:hover:border-gray-200'
-          )}
-          title="清空所有已放置的字母"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">撤销</span>
-        </button>
-      </div>
-
-      <div
-        ref={poolRef}
-        data-pool-slot
-        className="flex flex-wrap justify-center gap-2 sm:gap-3 p-4 bg-white rounded-2xl shadow-inner mb-6 min-h-24 sm:min-h-28"
-        onDragOver={handleDragOver}
-        onDrop={(e) => handleDrop(e, 0, 'pool')}
-      >
-        {shuffledLetters.map((letter, index) => (
-          <div
-            key={`pool-${index}`}
-            data-pool-slot
-            data-index={index}
-          >
-            <LetterCard
-              letter={letter}
-              index={index}
-              source="pool"
-              onClick={() => handlePoolCardClick(letter, index)}
-              disabled={isGameOver}
-            />
+        {gameStatus === 'paused' && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
+            <div className="text-center">
+              <Pause className="w-8 h-8 text-gray-400 mx-auto mb-1" />
+              <p className="text-gray-400 text-sm">已隐藏</p>
+            </div>
           </div>
-        ))}
+        )}
       </div>
 
       <div className="flex justify-center gap-3 flex-wrap">
         <button
           onClick={resetAnswer}
-          disabled={isGameOver}
+          disabled={isGameOver || gameStatus === 'paused'}
           className="flex items-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <RotateCcw className="w-4 h-4" />
@@ -478,7 +507,7 @@ export function GameBoard() {
         {config.allowHints ? (
           <button
             onClick={handleHint}
-            disabled={isGameOver}
+            disabled={isGameOver || gameStatus === 'paused'}
             className="flex items-center gap-2 px-4 py-3 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Lightbulb className="w-4 h-4" />
@@ -504,7 +533,7 @@ export function GameBoard() {
         {config.showAnswer && (
           <button
             onClick={handleRevealAnswer}
-            disabled={isGameOver}
+            disabled={isGameOver || gameStatus === 'paused'}
             className="flex items-center gap-2 px-4 py-3 bg-green-100 hover:bg-green-200 text-green-700 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Eye className="w-4 h-4" />
@@ -514,10 +543,10 @@ export function GameBoard() {
 
         <button
           onClick={handleSubmit}
-          disabled={!allFilled || isGameOver}
+          disabled={!allFilled || isGameOver || gameStatus === 'paused'}
           className={cn(
             'flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all',
-            allFilled && !isGameOver
+            allFilled && !isGameOver && gameStatus !== 'paused'
               ? cn('text-white shadow-lg hover:shadow-xl',
                   'bg-gradient-to-r hover:brightness-110',
                   config.bgGradient

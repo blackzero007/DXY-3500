@@ -7,7 +7,7 @@ export interface Word {
 
 export type GameMode = 'classic' | 'practice' | 'challenge';
 
-export type GameStatus = 'idle' | 'playing' | 'success' | 'failed';
+export type GameStatus = 'idle' | 'playing' | 'paused' | 'success' | 'failed';
 
 export interface GameState {
   currentWord: Word | null;
