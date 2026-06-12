@@ -6,22 +6,32 @@ interface SettingsStore extends AppSettings {
   initSettings: () => void;
   toggleSound: () => void;
   setSoundEnabled: (enabled: boolean) => void;
+  toggleDailyReminder: () => void;
+  setDailyReminderEnabled: (enabled: boolean) => void;
+  setDailyReminderTime: (time: string) => void;
 }
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   soundEnabled: true,
+  dailyReminder: {
+    enabled: false,
+    time: '09:00',
+  },
 
   initSettings: () => {
     const saved = getSettings();
     soundManager.setEnabled(saved.soundEnabled);
-    set({ soundEnabled: saved.soundEnabled });
+    set({
+      soundEnabled: saved.soundEnabled,
+      dailyReminder: saved.dailyReminder,
+    });
   },
 
   toggleSound: () => {
     const current = get().soundEnabled;
     const newValue = !current;
     soundManager.setEnabled(newValue);
-    saveSettings({ soundEnabled: newValue });
+    saveSettings({ ...get(), soundEnabled: newValue });
     set({ soundEnabled: newValue });
 
     if (newValue) {
@@ -31,11 +41,42 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   setSoundEnabled: (enabled: boolean) => {
     soundManager.setEnabled(enabled);
-    saveSettings({ soundEnabled: enabled });
+    saveSettings({ ...get(), soundEnabled: enabled });
     set({ soundEnabled: enabled });
 
     if (enabled) {
       soundManager.play('placeLetter');
     }
+  },
+
+  toggleDailyReminder: () => {
+    const current = get().dailyReminder;
+    const newEnabled = !current.enabled;
+    const newSettings = {
+      ...get(),
+      dailyReminder: { ...current, enabled: newEnabled },
+    };
+    saveSettings(newSettings);
+    set({ dailyReminder: { ...current, enabled: newEnabled } });
+  },
+
+  setDailyReminderEnabled: (enabled: boolean) => {
+    const current = get().dailyReminder;
+    const newSettings = {
+      ...get(),
+      dailyReminder: { ...current, enabled },
+    };
+    saveSettings(newSettings);
+    set({ dailyReminder: { ...current, enabled } });
+  },
+
+  setDailyReminderTime: (time: string) => {
+    const current = get().dailyReminder;
+    const newSettings = {
+      ...get(),
+      dailyReminder: { ...current, time },
+    };
+    saveSettings(newSettings);
+    set({ dailyReminder: { ...current, time } });
   },
 }));

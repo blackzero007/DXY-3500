@@ -1,12 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
 import { ModeSelector } from '@/components/ModeSelector';
 import { BadgeWall } from '@/components/BadgeWall';
+import { SettingsModal } from '@/components/SettingsModal';
 import { useAchievementStore } from '@/store/useAchievementStore';
 
 export default function Home() {
   const initAchievements = useAchievementStore((s) => s.initAchievements);
   const checkAchievements = useAchievementStore((s) => s.checkAchievements);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     initAchievements();
@@ -22,7 +24,7 @@ export default function Home() {
       </div>
 
       <div className="relative z-10">
-        <Header />
+        <Header onOpenSettings={() => setShowSettings(true)} />
         
         <main className="pt-8 pb-12">
           <div className="text-center mb-10">
@@ -68,6 +70,11 @@ export default function Home() {
           animation-delay: 4s;
         }
       `}</style>
+
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }

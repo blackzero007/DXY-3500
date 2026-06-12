@@ -138,10 +138,18 @@ export function saveAchievements(achievements: AchievementProgress[]): void {
 
 export interface AppSettings {
   soundEnabled: boolean;
+  dailyReminder: {
+    enabled: boolean;
+    time: string;
+  };
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
+  dailyReminder: {
+    enabled: false,
+    time: '09:00',
+  },
 };
 
 export function getSettings(): AppSettings {

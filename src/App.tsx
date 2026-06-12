@@ -4,8 +4,10 @@ import GamePage from "@/pages/GamePage";
 import Favorites from "@/pages/Favorites";
 import History from "@/pages/History";
 import Leaderboard from "@/pages/Leaderboard";
+import { useDailyReminder } from "@/hooks/useDailyReminder";
 
 export default function App() {
+  useDailyReminder();
   return (
     <Router>
       <Routes>

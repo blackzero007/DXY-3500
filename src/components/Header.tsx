@@ -1,12 +1,16 @@
 import { Link } from 'react-router-dom';
-import { Flame, Star, Calendar, Volume2, VolumeX, Trophy } from 'lucide-react';
+import { Flame, Star, Calendar, Volume2, VolumeX, Trophy, Settings } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { useFavoriteStore } from '../store/useFavoriteStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { formatDateDisplay, getTodayString } from '../utils/dateUtils';
 import { useEffect } from 'react';
 
-export function Header() {
+interface HeaderProps {
+  onOpenSettings?: () => void;
+}
+
+export function Header({ onOpenSettings }: HeaderProps) {
   const streak = useGameStore((s) => s.streak);
   const initFavorites = useFavoriteStore((s) => s.initFavorites);
   const favorites = useFavoriteStore((s) => s.favorites);
@@ -50,6 +54,16 @@ export function Header() {
             <VolumeX className="w-4 h-4 text-gray-400" />
           )}
         </button>
+
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="flex items-center justify-center w-9 h-9 rounded-full border transition-all bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 hover:from-indigo-100 hover:to-purple-100"
+            title="设置"
+          >
+            <Settings className="w-4 h-4 text-indigo-500" />
+          </button>
+        )}
 
         <Link
           to="/history"
