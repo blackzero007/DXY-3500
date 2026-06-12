@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Header } from '@/components/Header';
-import { GameBoard } from '@/components/GameBoard';
-import { ResultModal } from '@/components/ResultModal';
+import { ModeSelector } from '@/components/ModeSelector';
 import { BadgeWall } from '@/components/BadgeWall';
 import { useAchievementStore } from '@/store/useAchievementStore';
 
@@ -25,27 +24,27 @@ export default function Home() {
       <div className="relative z-10">
         <Header />
         
-        <main className="pt-4 pb-12">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
-              今日单词挑战
-            </h2>
-            <p className="text-gray-500 text-sm">
-              拖拽字母，在60秒内拼出正确的单词
+        <main className="pt-8 pb-12">
+          <div className="text-center mb-10">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-3">
+              每日单词拼图
+            </h1>
+            <p className="text-gray-500 text-base">
+              每天一个新单词，积累词汇量 📚
             </p>
           </div>
 
-          <GameBoard />
+          <ModeSelector />
 
-          <BadgeWall />
+          <div className="mt-12">
+            <BadgeWall />
+          </div>
         </main>
 
         <footer className="text-center py-6 text-gray-400 text-xs">
-          <p>每天一个新单词，积累词汇量 📚</p>
+          <p>选择适合你的模式，开始学习之旅 ✨</p>
         </footer>
       </div>
-
-      <ResultModal />
 
       <style>{`
         @keyframes blob {

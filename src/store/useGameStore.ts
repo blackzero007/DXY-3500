@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import type { GameState, GameStatus, Word } from '../types';
+import type { GameState, GameStatus, Word, GameMode } from '../types';
 import { wordList } from '../data/words';
-import { seededShuffle } from '../utils/shuffle';
+import { seededShuffle, shuffle } from '../utils/shuffle';
 import { getDateSeed, getTodayString, isYesterday } from '../utils/dateUtils';
 import {
   getStreak,
@@ -12,11 +12,12 @@ import {
   getTodayRecord,
 } from '../utils/storage';
 import { useAchievementStore } from './useAchievementStore';
+import { getGameModeConfig } from '../config/gameModes';
 
-const GAME_TIME = 60;
+const DEFAULT_GAME_TIME = 60;
 
 interface GameStore extends GameState {
-  initGame: () => void;
+  initGame: (mode?: GameMode) => void;
   startGame: () => void;
   placeLetter: (letter: string, fromIndex: number, toIndex: number) => void;
   removeLetter: (index: number) => void;
@@ -26,6 +27,8 @@ interface GameStore extends GameState {
   tick: () => void;
   setGameStatus: (status: GameStatus) => void;
   retryGame: () => void;
+  setGameMode: (mode: GameMode) => void;
+  revealAnswer: () => void;
 }
 
 function getWordOfDay(): Word {
@@ -33,6 +36,18 @@ function getWordOfDay(): Word {
   const seed = getDateSeed(today);
   const index = seed % wordList.length;
   return wordList[index];
+}
+
+function getRandomWord(): Word {
+  const randomIndex = Math.floor(Math.random() * wordList.length);
+  return wordList[randomIndex];
+}
+
+function getWordForMode(mode: GameMode): Word {
+  if (mode === 'classic') {
+    return getWordOfDay();
+  }
+  return getRandomWord();
 }
 
 function calculateNewStreak(lastDate: string | null): number {
@@ -58,34 +73,53 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentWord: null,
   shuffledLetters: [],
   answerLetters: [],
-  timeLeft: GAME_TIME,
+  timeLeft: DEFAULT_GAME_TIME,
   gameStatus: 'idle',
+  gameMode: 'classic',
   streak: 0,
   lastPlayDate: null,
   hintsUsed: 0,
   startTime: null,
 
-  initGame: () => {
-    const word = getWordOfDay();
+  setGameMode: (mode: GameMode) => {
+    const config = getGameModeConfig(mode);
+    set({
+      gameMode: mode,
+      timeLeft: config.timeLimit || DEFAULT_GAME_TIME,
+    });
+  },
+
+  initGame: (mode: GameMode = 'classic') => {
+    const config = getGameModeConfig(mode);
+    const word = getWordForMode(mode);
     const today = getTodayString();
     const todayRecord = getTodayRecord(today);
     const lastDate = getLastPlayDate();
     const streak = getStreak();
 
     const letters = word.word.split('');
-    const shuffled = seededShuffle(letters, getDateSeed(today) + 1);
+    let shuffled: string[];
+    
+    if (mode === 'classic') {
+      shuffled = seededShuffle(letters, getDateSeed(today) + 1);
+    } else {
+      shuffled = shuffle([...letters]);
+    }
 
     if (shuffled.join('') === word.word) {
       [shuffled[0], shuffled[shuffled.length - 1]] = [shuffled[shuffled.length - 1], shuffled[0]];
     }
 
-    if (todayRecord) {
+    const initialTime = config.timeLimit || DEFAULT_GAME_TIME;
+
+    if (mode === 'classic' && todayRecord) {
       set({
         currentWord: word,
         shuffledLetters: shuffled,
         answerLetters: new Array(word.word.length).fill(null),
-        timeLeft: GAME_TIME,
+        timeLeft: initialTime,
         gameStatus: todayRecord.success ? 'success' : 'failed',
+        gameMode: mode,
         streak: streak,
         lastPlayDate: lastDate,
         hintsUsed: todayRecord.hintsUsed,
@@ -96,8 +130,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentWord: word,
         shuffledLetters: shuffled,
         answerLetters: new Array(word.word.length).fill(null),
-        timeLeft: GAME_TIME,
+        timeLeft: initialTime,
         gameStatus: 'idle',
+        gameMode: mode,
         streak: streak,
         lastPlayDate: lastDate,
         hintsUsed: 0,
@@ -154,12 +189,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   resetAnswer: () => {
-    const { currentWord } = get();
+    const { currentWord, gameMode } = get();
     if (!currentWord) return;
 
     const today = getTodayString();
     const letters = currentWord.word.split('');
-    const shuffled = seededShuffle(letters, getDateSeed(today) + 1);
+    let shuffled: string[];
+    
+    if (gameMode === 'classic') {
+      shuffled = seededShuffle(letters, getDateSeed(today) + 1);
+    } else {
+      shuffled = shuffle([...letters]);
+    }
 
     if (shuffled.join('') === currentWord.word) {
       [shuffled[0], shuffled[shuffled.length - 1]] = [shuffled[shuffled.length - 1], shuffled[0]];
@@ -172,7 +213,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   submitAnswer: (): boolean => {
-    const { answerLetters, currentWord, hintsUsed, timeLeft, startTime } = get();
+    const { answerLetters, currentWord, hintsUsed, timeLeft, startTime, gameMode } = get();
     if (!currentWord) return false;
 
     const answer = answerLetters.join('');
@@ -180,8 +221,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (isCorrect) {
       const today = getTodayString();
+      const config = getGameModeConfig(gameMode);
       const timeUsed = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
-      const newStreak = calculateNewStreak(getLastPlayDate());
+      
+      let newStreak = get().streak;
+      if (gameMode === 'classic') {
+        newStreak = calculateNewStreak(getLastPlayDate());
+        saveStreak(newStreak);
+        saveLastPlayDate(today);
+      }
 
       saveGameRecord({
         date: today,
@@ -189,9 +237,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         success: true,
         timeUsed: timeUsed,
         hintsUsed: hintsUsed,
+        mode: gameMode,
       });
-      saveLastPlayDate(today);
-      saveStreak(newStreak);
 
       set({
         gameStatus: 'success',
@@ -206,8 +253,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   useHint: (): number => {
-    const { currentWord, answerLetters, shuffledLetters, hintsUsed, gameStatus } = get();
-    if (!currentWord || gameStatus !== 'playing') return hintsUsed;
+    const { currentWord, answerLetters, shuffledLetters, hintsUsed, gameStatus, gameMode } = get();
+    const config = getGameModeConfig(gameMode);
+    
+    if (!currentWord || gameStatus !== 'playing' || !config.allowHints) return hintsUsed;
 
     const word = currentWord.word;
     
@@ -246,15 +295,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   tick: () => {
-    const { timeLeft, gameStatus, currentWord, hintsUsed } = get();
+    const { timeLeft, gameStatus, currentWord, hintsUsed, gameMode } = get();
+    const config = getGameModeConfig(gameMode);
     
-    if (gameStatus !== 'playing') return;
+    if (gameStatus !== 'playing' || config.timeLimit === null) return;
 
     const newTimeLeft = timeLeft - 1;
 
     if (newTimeLeft <= 0) {
       const today = getTodayString();
-      const timeUsed = 60;
+      const timeUsed = config.timeLimit;
 
       saveGameRecord({
         date: today,
@@ -262,8 +312,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         success: false,
         timeUsed: timeUsed,
         hintsUsed: hintsUsed,
+        mode: gameMode,
       });
-      saveLastPlayDate(today);
+      
+      if (gameMode === 'classic') {
+        saveLastPlayDate(today);
+      }
 
       set({
         timeLeft: 0,
@@ -280,12 +334,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   retryGame: () => {
-    const { currentWord } = get();
+    const { currentWord, gameMode } = get();
     if (!currentWord) return;
 
+    const config = getGameModeConfig(gameMode);
     const today = getTodayString();
     const letters = currentWord.word.split('');
-    const shuffled = seededShuffle(letters, getDateSeed(today) + Date.now());
+    let shuffled: string[];
+    
+    if (gameMode === 'classic') {
+      shuffled = seededShuffle(letters, getDateSeed(today) + Date.now());
+    } else {
+      shuffled = shuffle([...letters]);
+    }
 
     if (shuffled.join('') === currentWord.word) {
       [shuffled[0], shuffled[shuffled.length - 1]] = [shuffled[shuffled.length - 1], shuffled[0]];
@@ -294,10 +355,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       shuffledLetters: shuffled,
       answerLetters: new Array(currentWord.word.length).fill(null),
-      timeLeft: GAME_TIME,
+      timeLeft: config.timeLimit || DEFAULT_GAME_TIME,
       gameStatus: 'playing',
       hintsUsed: 0,
       startTime: Date.now(),
+    });
+  },
+
+  revealAnswer: () => {
+    const { currentWord, gameMode } = get();
+    const config = getGameModeConfig(gameMode);
+    
+    if (!currentWord || !config.showAnswer) return;
+
+    const letters = currentWord.word.split('');
+    set({
+      answerLetters: letters,
+      shuffledLetters: new Array(letters.length).fill(''),
     });
   },
 }));

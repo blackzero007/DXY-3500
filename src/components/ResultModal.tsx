@@ -4,6 +4,7 @@ import { useGameStore } from '../store/useGameStore';
 import { useFavoriteStore } from '../store/useFavoriteStore';
 import { useAchievementStore } from '../store/useAchievementStore';
 import { useSpeech } from '../hooks/useSpeech';
+import { getGameModeConfig } from '../config/gameModes';
 import { cn } from '../lib/utils';
 
 type SpeechRate = 'normal' | 'slow';
@@ -17,7 +18,8 @@ interface ConfettiPiece {
 }
 
 export function ResultModal() {
-  const { gameStatus, currentWord, timeLeft, hintsUsed, streak, retryGame } = useGameStore();
+  const { gameStatus, currentWord, timeLeft, hintsUsed, streak, gameMode, startTime, retryGame } = useGameStore();
+  const config = getGameModeConfig(gameMode);
   const initFavorites = useFavoriteStore((s) => s.initFavorites);
   const toggleFavorite = useFavoriteStore((s) => s.toggleFavorite);
   const favorites = useFavoriteStore((s) => s.favorites);
@@ -65,12 +67,19 @@ export function ResultModal() {
 
   if (!isSuccess && !isFailed) return null;
 
-  const timeUsed = 60 - timeLeft;
+  const timeUsed = startTime && config.timeLimit !== null 
+    ? config.timeLimit - timeLeft 
+    : startTime 
+      ? Math.round((Date.now() - startTime) / 1000) 
+      : 0;
 
   const handleShare = () => {
+    const modeText = gameMode === 'classic' ? '经典模式' : gameMode === 'practice' ? '练习模式' : '挑战模式';
+    const timeText = config.timeLimit !== null ? `在${config.timeLimit}秒内` : '';
+    
     const text = isSuccess
-      ? `🎉 我在每日单词拼图中用了 ${timeUsed} 秒，${hintsUsed > 0 ? `使用了 ${hintsUsed} 次提示，` : ''}成功拼出了单词 "${currentWord?.word}"！来挑战我吧！`
-      : `😢 今天的每日单词拼图我没能在60秒内完成，单词是 "${currentWord?.word}" - ${currentWord?.meaning}。明天再来挑战！`;
+      ? `🎉 我在每日单词拼图【${modeText}】中${timeText}用了 ${timeUsed} 秒，${hintsUsed > 0 ? `使用了 ${hintsUsed} 次提示，` : ''}成功拼出了单词 "${currentWord?.word}"！来挑战我吧！`
+      : `😢 我在每日单词拼图【${modeText}】中${timeText}没能完成，单词是 "${currentWord?.word}" - ${currentWord?.meaning}。再来挑战一次！`;
     
     if (navigator.share) {
       navigator.share({

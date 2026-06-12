@@ -5,6 +5,8 @@ export interface Word {
   example?: string;
 }
 
+export type GameMode = 'classic' | 'practice' | 'challenge';
+
 export type GameStatus = 'idle' | 'playing' | 'success' | 'failed';
 
 export interface GameState {
@@ -13,10 +15,23 @@ export interface GameState {
   answerLetters: (string | null)[];
   timeLeft: number;
   gameStatus: GameStatus;
+  gameMode: GameMode;
   streak: number;
   lastPlayDate: string | null;
   hintsUsed: number;
   startTime: number | null;
+}
+
+export interface GameModeConfig {
+  id: GameMode;
+  name: string;
+  description: string;
+  icon: string;
+  timeLimit: number | null;
+  allowHints: boolean;
+  showAnswer: boolean;
+  color: string;
+  bgGradient: string;
 }
 
 export interface GameRecord {
@@ -25,6 +40,7 @@ export interface GameRecord {
   success: boolean;
   timeUsed: number;
   hintsUsed: number;
+  mode?: GameMode;
 }
 
 export interface LetterPosition {

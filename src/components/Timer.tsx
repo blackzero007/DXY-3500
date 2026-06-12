@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
+import { getGameModeConfig } from '../config/gameModes';
 import { cn } from '../lib/utils';
 
 export function Timer() {
-  const { timeLeft, gameStatus, tick } = useGameStore();
+  const { timeLeft, gameStatus, gameMode, tick } = useGameStore();
+  const config = getGameModeConfig(gameMode);
+  const totalTime = config.timeLimit || 60;
 
   useEffect(() => {
     if (gameStatus !== 'playing') return;
@@ -16,10 +19,13 @@ export function Timer() {
     return () => clearInterval(timer);
   }, [gameStatus, tick]);
 
-  const isWarning = timeLeft <= 10 && gameStatus === 'playing';
-  const isCritical = timeLeft <= 3 && gameStatus === 'playing';
+  const warningThreshold = Math.max(10, Math.floor(totalTime * 0.2));
+  const criticalThreshold = Math.max(3, Math.floor(totalTime * 0.1));
 
-  const progress = (timeLeft / 60) * 100;
+  const isWarning = timeLeft <= warningThreshold && gameStatus === 'playing';
+  const isCritical = timeLeft <= criticalThreshold && gameStatus === 'playing';
+
+  const progress = (timeLeft / totalTime) * 100;
   const circumference = 2 * Math.PI * 28;
   const offset = circumference - (progress / 100) * circumference;
 
@@ -53,7 +59,8 @@ export function Timer() {
             className={cn(
               'text-teal-500 transition-all duration-1000 ease-linear',
               isWarning && 'text-orange-500',
-              isCritical && 'text-red-500 animate-pulse'
+              isCritical && 'text-red-500 animate-pulse',
+              gameMode === 'challenge' && !isWarning && !isCritical && 'text-orange-500'
             )}
           />
         </svg>
@@ -63,7 +70,8 @@ export function Timer() {
               'text-lg font-bold transition-colors',
               isWarning && 'text-orange-500',
               isCritical && 'text-red-500',
-              !isWarning && 'text-gray-700'
+              !isWarning && !isCritical && gameMode === 'challenge' && 'text-orange-600',
+              !isWarning && !isCritical && gameMode !== 'challenge' && 'text-gray-700'
             )}
           >
             {timeLeft}

@@ -7,6 +7,10 @@ export function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+export function shuffle<T>(array: T[]): T[] {
+  return shuffleArray(array);
+}
+
 export function seededRandom(seed: number): () => number {
   return function () {
     seed = (seed * 9301 + 49297) % 233280;
