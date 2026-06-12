@@ -11,6 +11,7 @@ interface LetterCardProps {
   onKeyDown?: (e: React.KeyboardEvent) => void;
   disabled?: boolean;
   isHinted?: boolean;
+  removable?: boolean;
   ariaLabel?: string;
 }
 
@@ -35,6 +36,7 @@ export function LetterCard({
   onKeyDown,
   disabled = false,
   isHinted = false,
+  removable = false,
   ariaLabel,
 }: LetterCardProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -132,7 +134,9 @@ export function LetterCard({
 
   const defaultAriaLabel = source === 'pool'
     ? `字母 ${letter.toUpperCase()}，在字母池中第 ${index + 1} 位`
-    : `字母 ${letter.toUpperCase()}，答案区第 ${index + 1} 位，按回车或空格移回字母池`;
+    : removable
+      ? `字母 ${letter.toUpperCase()}，答案区第 ${index + 1} 位，点击可移回字母池`
+      : `字母 ${letter.toUpperCase()}，答案区第 ${index + 1} 位，按回车或空格移回字母池`;
 
   return (
     <div
@@ -154,10 +158,10 @@ export function LetterCard({
         'flex items-center justify-center',
         'rounded-xl text-white font-bold text-xl sm:text-2xl',
         'bg-gradient-to-br shadow-lg',
-        'cursor-grab active:cursor-grabbing',
+        removable ? 'cursor-pointer group' : 'cursor-grab active:cursor-grabbing',
         'select-none touch-none',
         'transition-all duration-200',
-        'hover:scale-105 hover:shadow-xl',
+        removable ? 'hover:ring-2 hover:ring-red-400 hover:ring-offset-2 hover:scale-95 hover:opacity-90' : 'hover:scale-105 hover:shadow-xl',
         'active:scale-95',
         'focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-offset-2 focus:scale-105',
         gradient,
@@ -167,7 +171,14 @@ export function LetterCard({
         isHinted && 'ring-2 ring-yellow-300 ring-offset-2'
       )}
     >
-      {letter.toUpperCase()}
+      <span className="relative">
+        {letter.toUpperCase()}
+        {removable && !disabled && (
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            ×
+          </span>
+        )}
+      </span>
     </div>
   );
 }
