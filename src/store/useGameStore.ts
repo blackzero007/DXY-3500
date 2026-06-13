@@ -82,6 +82,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastPlayDate: null,
   hintsUsed: 0,
   startTime: null,
+  totalPausedDuration: 0,
+  pauseStartTime: null,
 
   setGameMode: (mode: GameMode) => {
     const config = getGameModeConfig(mode);
@@ -126,6 +128,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         lastPlayDate: lastDate,
         hintsUsed: todayRecord.hintsUsed,
         startTime: null,
+        totalPausedDuration: 0,
+        pauseStartTime: null,
       });
     } else {
       set({
@@ -139,6 +143,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         lastPlayDate: lastDate,
         hintsUsed: 0,
         startTime: null,
+        totalPausedDuration: 0,
+        pauseStartTime: null,
       });
     }
   },
@@ -147,19 +153,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       gameStatus: 'playing',
       startTime: Date.now(),
+      totalPausedDuration: 0,
+      pauseStartTime: null,
     });
   },
 
   pauseGame: () => {
     const { gameStatus } = get();
     if (gameStatus !== 'playing') return;
-    set({ gameStatus: 'paused' });
+    set({
+      gameStatus: 'paused',
+      pauseStartTime: Date.now(),
+    });
   },
 
   resumeGame: () => {
-    const { gameStatus } = get();
-    if (gameStatus !== 'paused') return;
-    set({ gameStatus: 'playing' });
+    const { gameStatus, totalPausedDuration, pauseStartTime } = get();
+    if (gameStatus !== 'paused' || pauseStartTime === null) return;
+    const pausedMs = Date.now() - pauseStartTime;
+    set({
+      gameStatus: 'playing',
+      totalPausedDuration: totalPausedDuration + pausedMs,
+      pauseStartTime: null,
+    });
   },
 
   placeLetter: (letter: string, fromIndex: number, toIndex: number) => {
@@ -227,7 +243,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   submitAnswer: (): boolean => {
-    const { answerLetters, currentWord, hintsUsed, startTime, gameMode } = get();
+    const { answerLetters, currentWord, hintsUsed, startTime, gameMode, totalPausedDuration, pauseStartTime } = get();
     if (!currentWord) return false;
 
     const answer = answerLetters.join('');
@@ -235,8 +251,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (isCorrect) {
       const today = getTodayString();
-      const timeUsed = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
-      
+      let timeUsed = 0;
+      if (startTime) {
+        const currentPaused = pauseStartTime ? (Date.now() - pauseStartTime) : 0;
+        timeUsed = Math.round((Date.now() - startTime - totalPausedDuration - currentPaused) / 1000);
+      }
+
       let newStreak = get().streak;
       if (gameMode === 'classic') {
         newStreak = calculateNewStreak(getLastPlayDate());
@@ -308,7 +328,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   tick: () => {
-    const { timeLeft, gameStatus, currentWord, hintsUsed, gameMode } = get();
+    const { timeLeft, gameStatus, currentWord, hintsUsed, gameMode, startTime, totalPausedDuration, pauseStartTime } = get();
     const config = getGameModeConfig(gameMode);
     
     if (gameStatus !== 'playing' || config.timeLimit === null) return;
@@ -317,7 +337,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (newTimeLeft <= 0) {
       const today = getTodayString();
-      const timeUsed = config.timeLimit;
+      let timeUsed = config.timeLimit;
+      if (startTime) {
+        const currentPaused = pauseStartTime ? (Date.now() - pauseStartTime) : 0;
+        timeUsed = Math.round((Date.now() - startTime - totalPausedDuration - currentPaused) / 1000);
+      }
 
       saveGameRecord({
         date: today,
@@ -372,6 +396,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameStatus: 'playing',
       hintsUsed: 0,
       startTime: Date.now(),
+      totalPausedDuration: 0,
+      pauseStartTime: null,
     });
   },
 

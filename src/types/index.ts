@@ -20,6 +20,8 @@ export interface GameState {
   lastPlayDate: string | null;
   hintsUsed: number;
   startTime: number | null;
+  totalPausedDuration: number;
+  pauseStartTime: number | null;
 }
 
 export interface GameModeConfig {
